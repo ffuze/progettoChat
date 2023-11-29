@@ -2,6 +2,7 @@ package com.server;
 
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 
 /**
  * Hello world!
@@ -13,9 +14,11 @@ public class App
     {
         try{
             ServerSocket server = new ServerSocket(3001);
+            ArrayList<Thread> listaThread = new ArrayList<>();
             while(true){
                 Socket s = server.accept();
-                ServerManager t = new ServerManager(s);
+                ServerManager t = new ServerManager(s, listaThread);
+                listaThread.add(t);
                 t.start();
             }
         }
