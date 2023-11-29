@@ -17,14 +17,13 @@ public class App
             ServerSocket server = new ServerSocket(3001);
             while(true){
                 //il client inserisce il nome
-                Socket s = new Socket();
+                Socket s = server.accept();
                 System.out.print("Inserisci il tuo nome: ");
                 Scanner scanner = new Scanner(System.in);
                 String nomeClient = scanner.nextLine();
                 DataOutputStream outputVersoServer = new DataOutputStream(s.getOutputStream());
                 outputVersoServer.writeBytes(nomeClient + "\n");
                 //il client rimane in ascolto
-                s = server.accept();
                 ClientManager t = new ClientManager(s);
                 t.start();
             }
