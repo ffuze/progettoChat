@@ -1,7 +1,9 @@
 package com.client;
 
+import java.io.DataOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Scanner;
 
 /**
  * Hello world!
@@ -14,7 +16,15 @@ public class App
         try{
             ServerSocket server = new ServerSocket(3001);
             while(true){
-                Socket s = server.accept();
+                //il client inserisce il nome
+                Socket s = new Socket();
+                System.out.print("Inserisci il tuo nome: ");
+                Scanner scanner = new Scanner(System.in);
+                String nomeClient = scanner.nextLine();
+                DataOutputStream outputVersoServer = new DataOutputStream(s.getOutputStream());
+                outputVersoServer.writeBytes(nomeClient + "\n");
+                //il client rimane in ascolto
+                s = server.accept();
                 ClientManager t = new ClientManager(s);
                 t.start();
             }
