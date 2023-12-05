@@ -17,7 +17,7 @@ public class ClientManager extends Thread {
     }
 
     @Override
-    public void run() {
+    public void run(){
         try{
             String messaggio;
             do{
