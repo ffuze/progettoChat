@@ -21,7 +21,7 @@ public class ClientManager extends Thread {
         try{
             String messaggio;
             do{
-                System.out.print("Scrivi il messaggio che vuoi inviare (o /exit per uscire): ");
+                System.out.println(inputDalServer.readLine());
                 BufferedReader inputUtente = new BufferedReader(new InputStreamReader(System.in));
                 messaggio = inputUtente.readLine();
                 outputVersoServer.writeBytes(messaggio + "\n");

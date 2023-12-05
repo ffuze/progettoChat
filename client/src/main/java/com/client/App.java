@@ -24,7 +24,7 @@ public class App
             System.out.print("Inserisci il tuo nome: ");
             String nomeUtente = scanner.nextLine();
             outputVersoServer.writeBytes(nomeUtente + "\n");
-
+ 
             //ricezione del messaggio di benvenuto del server
             String messaggioBenvenuto = inputDalServer.readLine();
             System.out.println(messaggioBenvenuto);
