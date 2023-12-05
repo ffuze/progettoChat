@@ -1,30 +1,43 @@
-package com.client;
+package com.client; //ma se andassimo in chiamata per capire gli errori? possibilmente senza arrivare a cazzeggiare che non ho voglia di perdere tempo
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.InputStreamReader;
-import java.io.ObjectOutputStream;
-import java.io.OutputStream;
 import java.net.Socket;
 
-public class ClientManager extends Thread{
-    Socket s;
+public class ClientManager extends Thread {
+    private Socket socket;
+    private BufferedReader inputDalServer;
+    private DataOutputStream outputVersoServer;
 
-    public ClientManager(Socket s){
-        this.s = s;
+    public ClientManager(Socket socket, BufferedReader inputDalServer, DataOutputStream outputVersoServer) {
+        this.socket = socket;
+        this.inputDalServer = inputDalServer;
+        this.outputVersoServer = outputVersoServer;
     }
 
     @Override
-    public void run(){
+    public void run() {
         try{
-            DataOutputStream outputVersoClient = new DataOutputStream(s.getOutputStream());
-            BufferedReader inputDalClient = new BufferedReader(new InputStreamReader(s.getInputStream()));
+            String messaggio;
+            do{
+                System.out.print("Scrivi il messaggio che vuoi inviare (o /exit per uscire): ");
+                BufferedReader inputUtente = new BufferedReader(new InputStreamReader(System.in));
+                messaggio = inputUtente.readLine();
+                outputVersoServer.writeBytes(messaggio + "\n");
 
-            //
-            inputDalClient.readLine();
+                //ricezione dei messaggi dal server
+                String rispostaServer = inputDalServer.readLine();
+                System.out.println(rispostaServer);
+
+            }while(!messaggio.equals("/exit"));
+
+            socket.close();
         }
-        catch(){
-            
+        catch(Exception e){
+            System.out.println("Errore durante l'esecuzione del client");
+            System.out.println(e.getMessage());
+            System.exit(1);
         }
     }
-}  
+}

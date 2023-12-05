@@ -1,7 +1,8 @@
 package com.client;
 
+import java.io.BufferedReader;
 import java.io.DataOutputStream;
-import java.net.ServerSocket;
+import java.io.InputStreamReader;
 import java.net.Socket;
 import java.util.Scanner;
 
@@ -13,20 +14,24 @@ public class App
 {
     public static void main( String[] args )
     {
-        try{
-            ServerSocket server = new ServerSocket(3001);
-            while(true){
-                //il client inserisce il nome
-                Socket s = server.accept();
-                System.out.print("Inserisci il tuo nome: ");
-                Scanner scanner = new Scanner(System.in);
-                String nomeClient = scanner.nextLine();
-                DataOutputStream outputVersoServer = new DataOutputStream(s.getOutputStream());
-                outputVersoServer.writeBytes(nomeClient + "\n");
-                //il client rimane in ascolto
-                ClientManager t = new ClientManager(s);
-                t.start();
-            }
+        try {
+            Socket socket = new Socket("localhost", 3011);
+            BufferedReader inputDalServer = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            DataOutputStream outputVersoServer = new DataOutputStream(socket.getOutputStream());
+            Scanner scanner = new Scanner(System.in);
+
+            //invio del nome al server
+            System.out.print("Inserisci il tuo nome: ");
+            String nomeUtente = scanner.nextLine();
+            outputVersoServer.writeBytes(nomeUtente + "\n");
+
+            //ricezione del messaggio di benvenuto del server
+            String messaggioBenvenuto = inputDalServer.readLine();
+            System.out.println(messaggioBenvenuto);
+
+            //avvio client multithread
+            ClientManager clientManager = new ClientManager(socket, inputDalServer, outputVersoServer);
+            clientManager.start();
         }
         catch(Exception e){
             System.out.println("Errore nella connessione");

@@ -13,11 +13,11 @@ public class App
     public static void main( String[] args )
     {
         try{
-            ServerSocket server = new ServerSocket(3001);
-            ArrayList<Thread> listaThread = new ArrayList<>();
+            ServerSocket server = new ServerSocket(3011);
+            ArrayList<ServerManager> listaThread = new ArrayList<>();
             while(true){
                 Socket s = server.accept();
-                ServerManager t = new ServerManager(s, listaThread);
+                ServerManager t = new ServerManager(s, listaThread); //
                 listaThread.add(t);
                 t.start();
             }

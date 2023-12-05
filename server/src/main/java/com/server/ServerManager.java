@@ -8,40 +8,45 @@ import java.util.ArrayList;
 
 public class ServerManager extends Thread{
     Socket s;
-    ArrayList<Thread> listaThread = new ArrayList<>();
+    ArrayList<ServerManager> listaThread = new ArrayList<>();
     DataOutputStream outputVersoClient;
     BufferedReader inputDalClient;
     String messaggio = "";
     boolean exit = false;
 
-    public ServerManager(Socket s,  ArrayList<Thread> listaThread){
+    public ServerManager(Socket s, ArrayList<ServerManager> listaThread){
         this.s = s;
         this.listaThread = listaThread;
     }
 
-    public void stampaATutti(String messaggio){
+    //metodo per far stampare il messaggio desiderato a tutti i client connessi
+    public void stampaATutti(String messaggio) {
         try{
-            for(Thread t : listaThread){
-                outputVersoClient.writeBytes(messaggio + "\n");
+            for(ServerManager serverManager : listaThread){
+                serverManager.outputVersoClient.writeBytes(messaggio + "\n");
             }
         }
-        catch(Exception e){
+        catch(Exception e) {
             System.out.println("Errore nella fase di scorrimento dell'array");
             System.out.println(e.getMessage());
         }
     }
 
+    //metodo per trovare lo username del client interessato
     public String trovaUsername(){
         int atIndex = messaggio.indexOf('@');
         int spaceIndex = messaggio.indexOf(' ', atIndex);
         return messaggio.substring(atIndex + 1, spaceIndex);
     }
 
+    //metodo per far stampare il messaggio desiderato al client desiderato
     public void stampaAlClient(String messaggio, String username){
         try{
-            for(Thread t : listaThread){
-                if(true/*t.containsUsername(username)*/){
-                    outputVersoClient.writeBytes(messaggio);
+            for(ServerManager serverManager : listaThread){
+                if(serverManager != this){ //per evitare che il messaggio inviato dal mittente non lo riceva nuovamente pure lui (oltre al client)
+                    if(serverManager.trovaUsername().equals(username)) {
+                        serverManager.outputVersoClient.writeBytes(messaggio + "\n");
+                    }
                 }
             }
         }
@@ -51,9 +56,12 @@ public class ServerManager extends Thread{
         }
     }
 
+    /*
+    //eventuale metodo per uscire da qualche ciclo
     public void terminate(){
         exit = true;
     }
+    */
 
     @Override
     public void run(){
@@ -63,24 +71,27 @@ public class ServerManager extends Thread{
 
             System.out.println("CLIENT CONNESSO"); 
 
-            outputVersoClient.writeBytes("Benvenuto client, prima di scrivere il messaggio includi una delle seguenti regole:\n");
-            outputVersoClient.writeBytes("@all: per mandare un messaggio a tutti\n");
-            outputVersoClient.writeBytes("@username: manda un messaggio ad un singolo utente\n");
-            outputVersoClient.writeBytes("/exit: per uscire dal programma\n");
+            outputVersoClient.writeBytes("Benvenuto client, prima di scrivere il messaggio includi una delle seguenti regole:\n"); //1 regole + scrittura del messaggio
+            outputVersoClient.writeBytes("@all: per mandare un messaggio a tutti\n"); //1 regole + scrittura del messaggio
+            outputVersoClient.writeBytes("@username: manda un messaggio ad un singolo utente\n"); //1 regole + scrittura del messaggio
+            outputVersoClient.writeBytes("/exit: per uscire dal programma\n"); //1 regole + scrittura del messaggio
 
             do{
-                outputVersoClient.writeBytes("Scrivi il messaggio che vuoi inviare:" + "\n");
-                messaggio = inputDalClient.readLine();
+                outputVersoClient.writeBytes("Scrivi il messaggio che vuoi inviare:" + "\n"); //1 regole + scrittura del messaggio
+                
+                messaggio = inputDalClient.readLine(); //2 messaggio del client che arriva al server
                 String username = trovaUsername();
                 if(messaggio.startsWith("@")){
-                    if(messaggio.startsWith("@all")){
-                        stampaATutti(messaggio);
+                    if(messaggio.equals("@all")){
+                        stampaATutti(messaggio); //3 stampa del messaggio a tutti i client
                     }
                     else if(messaggio.startsWith("@" + username)){
-                        stampaAlClient(messaggio, username);
+                        stampaAlClient(messaggio, username); //4 stampa del messaggio al client interessato
                     }
                 }
             }while(!messaggio.equals("/exit"));
+
+            s.close();
         }
         catch(Exception e){
             System.out.println("Errore nella connessione");
