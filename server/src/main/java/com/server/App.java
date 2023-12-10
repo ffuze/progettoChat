@@ -19,6 +19,7 @@ public class App
             while(true){
                 Socket s = server.accept();
                 ServerManager t = new ServerManager(s, utentiConnessi);
+                utentiConnessi.put(t.getUtente(), s);
                 t.start();
             }
         }
