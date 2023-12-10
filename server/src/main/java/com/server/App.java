@@ -2,7 +2,7 @@ package com.server;
 
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
+import java.util.HashMap;
 
 /**
  * Hello world!
@@ -14,11 +14,11 @@ public class App
     {
         try{
             ServerSocket server = new ServerSocket(3011);
-            ArrayList<ServerManager> listaThread = new ArrayList<>();
+            System.out.println("Server avviato ed in ascolto...");
+            HashMap<String, Socket> utentiConnessi = new HashMap<>();
             while(true){
                 Socket s = server.accept();
-                ServerManager t = new ServerManager(s, listaThread); //
-                listaThread.add(t);
+                ServerManager t = new ServerManager(s, utentiConnessi);
                 t.start();
             }
         }
