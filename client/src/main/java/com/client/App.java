@@ -21,7 +21,7 @@ public class App
             Scanner scanner = new Scanner(System.in);
 
             //invio del nome al server
-            System.out.print("Inserisci il tuo nome: ");
+            System.out.print("Ciao! Inserisci il tuo nome, cosi' che ti possa identificare: ");
             String nomeUtente = scanner.nextLine();
             outputVersoServer.writeBytes(nomeUtente + "\n");
  

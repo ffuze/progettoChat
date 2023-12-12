@@ -5,6 +5,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public class ServerManager extends Thread{
@@ -15,12 +16,12 @@ public class ServerManager extends Thread{
     String messaggio = "";
     boolean exit = false;
     String utente = "";
-    private static final String[] messaggiBenvenuto = {
-            "%s si è connesso al server, che si fa ora?",
-            "%s si è connesso al server, spero abbia almeno portato qualcosa da mangiare...",
-            "%s si è connesso al server, lasciate ogni speranza o voi che entrate...",
-            "%s si è connesso al server, un altro utente da accudire",
-            "%s si è connesso al server, non combinare guazzabugli per piacere"
+    String[] messaggiBenvenuto = {
+        "[%s si e' connesso al server, che si fa ora?]",
+        "[%s si e' connesso al server, spero abbia almeno portato qualcosa da mangiare...]",
+        "[%s si e' connesso al server, lasciate ogni speranza o voi che entrate...]",
+        "[%s si e' connesso al server, un altro utente da tenere a bada]",
+        "[%s si e' connesso al server, speriamo non combini guazzabugli]"
     };
 
     public ServerManager(Socket s, HashMap<String, Socket> utentiConnessi) {
@@ -29,18 +30,38 @@ public class ServerManager extends Thread{
     }
 
     @Override
-    public void run(){
+    public void run() {
         try{
+
             outputVersoClient = new DataOutputStream(s.getOutputStream());
             inputDalClient = new BufferedReader(new InputStreamReader(s.getInputStream()));
 
             utente = inputDalClient.readLine();
+
+            //controllo se il nome inserito esista o no
+            synchronized(utentiConnessi){
+                if(utentiConnessi.containsKey(utente)){
+                    outputVersoClient.writeBytes("Il nome che hai scelto gia' esiste" + "\n");
+                    s.close();
+                    return;
+                }
+                utentiConnessi.put(utente, s);
+            }
+
             stampaMessaggioBenvenuto(utente);
-            //notificaConnessione(messaggio); SONO BLOCCATO QUI -------------------------------------------------------------------------------------------------------------
+            outputVersoClient.writeBytes("Benvenuto " + utente + ", prima di scrivere il messaggio includi una delle seguenti regole: '@everyone manda in broadcast', '@*username* manda ad un host', '!utenti' mostra gli utenti connessi, '/exit' esci dal programma\n");
 
-            outputVersoClient.writeBytes("Benvenuto " + utente + ", prima di scrivere il messaggio includi una delle seguenti regole: '@all manda in broadcast', '@*username* manda ad un host', '@utenti' mostra gli utenti connessi, '/exit' esci dal programma\n");
+            //stampo la notifica di connessione del nuovo client a tutti gli altri
+            synchronized(utentiConnessi){
+                for(String nomeClient : utentiConnessi.keySet()){
+                    if(!nomeClient.equals(utente)){
+                        Socket destinatario = utentiConnessi.get(nomeClient);
+                        notificaConnessione(utente, destinatario);
+                    }
+                }
+            }
 
-            do{
+            do {
                 outputVersoClient.writeBytes("Scrivi il messaggio che vuoi inviare:" + "\n");
                 messaggio = inputDalClient.readLine();
                 gestisciMessaggio(messaggio);
@@ -49,7 +70,7 @@ public class ServerManager extends Thread{
             s.close();
         }
         catch(IOException ioe){
-            System.out.println("E niente, un utente ha deciso di porre fine al tutto...");
+            System.out.println("[E niente, un utente ha deciso di porre fine al tutto...]");
             System.out.println(ioe.getMessage());
             System.exit(1);
         }
@@ -66,11 +87,11 @@ public class ServerManager extends Thread{
         String messaggio = String.format(messaggiBenvenuto[i], nome);
         System.out.println(messaggio);
     }
-
+    
     //metodo per gestire chi è entrato o no ecc
     public void gestisciConnessione(String nome){
         utentiConnessi.put(nome, s);
-        System.out.println(nome + " si è connesso alla chat");
+        System.out.println(nome + " si e' connesso alla chat");
 
         for(String nomeClient : utentiConnessi.keySet()){
             if(!nomeClient.equals(nome)){
@@ -87,17 +108,33 @@ public class ServerManager extends Thread{
         return !utentiConnessi.containsKey(nome);
     }
 
+    //metodo che stampa la lista degli utenti connessi al socket (alla chat)
+    public void inviaListaUtenti(){
+        try{
+            ArrayList<String> utentiConnessi = new ArrayList<>();
+            utentiConnessi.add(getUtentiConnessi());
+            String listaUtenti = "[Utenti connessi: " + utentiConnessi.toString() + "]" + "\n";
+            outputVersoClient.writeBytes(listaUtenti);
+        }
+        catch(IOException e) {
+            System.out.println("Errore nell'invio della lista degli utenti connessi");
+            System.out.println(e.getMessage());
+        }
+    }
+
     //metodo che ritorna l'array di tutte gli utenti connessi alla chat
-    public String[] getUtentiConnessi(){
-        return utentiConnessi.keySet().toArray(new String[0]);
+    public String getUtentiConnessi(){
+        return String.join(", ", utentiConnessi.keySet());
     }
 
     //metodo per notificare tutti i client dell'unione di un nuovo utente
-    private void notificaConnessione(String nomeClient, Socket destinatario) {
+    public void notificaConnessione(String nomeClient, Socket destinatario) {
         try{
-            DataOutputStream outputVersoDestinatario = new DataOutputStream(destinatario.getOutputStream());
-            String messaggioNotifica = "Il client " + nomeClient + " si è unito alla chat";
-            outputVersoDestinatario.writeBytes(messaggioNotifica + "\n");
+            synchronized(utentiConnessi){
+                DataOutputStream outputVersoDestinatario = new DataOutputStream(destinatario.getOutputStream());
+                String messaggioNotifica = "[" + nomeClient + " si e' unito alla chat]";
+                outputVersoDestinatario.writeBytes(messaggioNotifica + "\n");
+            }
         }
         catch(IOException e){
             System.out.println("Errore nell'invio della notifica di unione");
@@ -106,24 +143,25 @@ public class ServerManager extends Thread{
     }
 
     //metodo per gestire come e cosa stampare in base alla richiesta del client
-    public void gestisciMessaggio(String messaggio) {
+    public void gestisciMessaggio(String messaggio){
         try{
             if(messaggio.startsWith("@")){
                 String username = trovaUsername();
-                if(messaggio.startsWith("@all")){
-                    stampaATutti(messaggio); // stampa il messaggio a tutti i client
+                if(messaggio.startsWith("@everyone")){
+                    stampaATutti(messaggio); //stampa il messaggio a tutti i client
                 }
                 else if(messaggio.startsWith("@" + username)){
                     stampaAlClient(messaggio, username); // stampa il messaggio al client interessato
                 }
-                else if(messaggio.equals("@utenti")){
-                    String[] utentiConnessi = getUtentiConnessi();
-                    //invia la lista al client richiedente
-                    outputVersoClient.writeBytes("Utenti connessi: " + String.join(", ", utentiConnessi) + "\n");
+                else{
+                    outputVersoClient.writeBytes("Non inserire spazi dopo la chiocciola"); //se il client inserisce la chiocciola ma poi un altro simbolo (presumibilmente uno spazio) manda un warning
                 }
             }
-            else if(!messaggio.startsWith("@")){
-                outputVersoClient.writeBytes("Ricordati di rispettare le regole mostrate precedentemente per inviare un messaggio...");
+            else if(messaggio.equals("!utenti")){
+                inviaListaUtenti();
+            }
+            else{
+                outputVersoClient.writeBytes("Rispetta le regole sintattiche, che puoi vedere digitando '!utenti'");
             }
         }
         catch (Exception e){
@@ -159,11 +197,15 @@ public class ServerManager extends Thread{
         try{
             Socket destinatario = utentiConnessi.get(username);
             if(destinatario != null){
-                new DataOutputStream(destinatario.getOutputStream()).writeBytes(messaggio + "\n");
+                new DataOutputStream(destinatario.getOutputStream()).writeBytes("[Messaggio privato da " + "*mittente ancora da inserire" + "]: " + messaggio + "\n");
+            }
+            else{
+                outputVersoClient.writeBytes("Utente " + destinatario + " non connesso\n");
             }
         }
         catch(Exception e){
             System.out.println("Errore nell'invio del messaggio al client interessato");
+            System.out.println(e.getMessage());
             System.out.println(e.getMessage());
         }
     }

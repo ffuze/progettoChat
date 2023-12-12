@@ -1,4 +1,4 @@
-package com.client; //ma se andassimo in chiamata per capire gli errori? possibilmente senza arrivare a cazzeggiare che non ho voglia di perdere tempo
+package com.client;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
@@ -24,14 +24,17 @@ public class ClientManager extends Thread {
                 System.out.println(inputDalServer.readLine());
                 BufferedReader inputUtente = new BufferedReader(new InputStreamReader(System.in));
                 messaggio = inputUtente.readLine();
+                System.out.println(messaggio);
                 outputVersoServer.writeBytes(messaggio + "\n");
 
                 //ricezione dei messaggi dal server
                 String rispostaServer = inputDalServer.readLine();
                 System.out.println(rispostaServer);
 
+                if(messaggio.startsWith("Utenti connessi:")){
+                    System.out.println(messaggio);
+                }
             }while(!messaggio.equals("/exit"));
-
             socket.close();
         }
         catch(Exception e){
